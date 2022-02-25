@@ -25,7 +25,7 @@ module.exports = function (config) {
       suppressAll: true // removes the duplicated traces
     },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/rxjs-kurata'),
+      dir: require('path').join(__dirname, './coverage/apm'),
       subdir: '.',
       reporters: [
         { type: 'html' },
