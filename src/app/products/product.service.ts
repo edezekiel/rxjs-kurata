@@ -1,9 +1,18 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
-import { catchError, map, Observable, tap, throwError } from 'rxjs';
+import {
+  catchError,
+  combineLatest,
+  map,
+  Observable,
+  tap,
+  throwError,
+} from 'rxjs';
 
+import { ProductCategoryService } from '../product-categories/product-category.service';
 import { Product } from './product';
+import { ProductCategory } from '../product-categories/product-category';
 
 @Injectable({
   providedIn: 'root',
@@ -13,17 +22,25 @@ export class ProductService {
   private suppliersUrl = 'api/suppliers';
 
   products$ = this.http.get<Product[]>(this.productsUrl).pipe(
-    map((ps) => ps.map((p) => this._surgePricing(p))),
     tap((data) => console.log('Products: ', JSON.stringify(data))),
     catchError(this.handleError)
   );
 
-  constructor(private http: HttpClient) {}
+  productsWithCategory$ = combineLatest([
+    this.products$,
+    this.categoryService.productCategories$,
+  ]).pipe(map(([ps, cs]) => ps.map((p) => this._rebuildProduct(p, cs))));
 
-  private _surgePricing(p: Product): Product {
+  constructor(
+    private http: HttpClient,
+    private categoryService: ProductCategoryService
+  ) {}
+
+  private _rebuildProduct(p: Product, cs: ProductCategory[]): Product {
     return {
       ...p,
       price: p.price ? p.price * 1.5 : 0,
+      category: cs.find((c) => p.categoryId === c.id)?.name,
       searchKey: [p.productName],
     };
   }
