@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 import {
+  BehaviorSubject,
   catchError,
   combineLatest,
   map,
@@ -31,10 +32,25 @@ export class ProductService {
     this.categoryService.productCategories$,
   ]).pipe(map(([ps, cs]) => ps.map((p) => this._rebuildProduct(p, cs))));
 
+  private productSelectedSubject = new BehaviorSubject<number>(0);
+  productSelectedAction$ = this.productSelectedSubject.asObservable();
+
+  selectedProduct$ = combineLatest([
+    this.productsWithCategory$,
+    this.productSelectedAction$,
+  ]).pipe(
+    map(([ps, selectedId]) => ps.find((p) => p.id === selectedId)),
+    tap((p) => console.log('selectedProduct', p))
+  );
+
   constructor(
     private http: HttpClient,
     private categoryService: ProductCategoryService
   ) {}
+
+  selectedProductChanged(selectedProductId: number) {
+    this.productSelectedSubject.next(selectedProductId);
+  }
 
   private _rebuildProduct(p: Product, cs: ProductCategory[]): Product {
     return {
