@@ -13,12 +13,17 @@ import {
   tap,
   throwError,
   shareReplay,
+  switchMap,
+  filter,
+  forkJoin,
+  of,
 } from 'rxjs';
 
 import { ProductCategoryService } from '../product-categories/product-category.service';
 import { Product } from './product';
 import { ProductCategory } from '../product-categories/product-category';
 import { SupplierService } from '../suppliers/supplier.service';
+import { Supplier } from '../suppliers/supplier';
 
 @Injectable({
   providedIn: 'root',
@@ -52,6 +57,25 @@ export class ProductService {
     shareReplay(1)
   );
 
+  // selectedProductSuppliers$ = combineLatest([
+  //   this.selectedProduct$,
+  //   this.suppliersService.suppliers$,
+  // ]).pipe(
+  //   map(([selectedProduct, suppliers]) =>
+  //     suppliers.filter((s) => selectedProduct?.supplierIds?.includes(s.id))
+  //   )
+  // );
+
+  selectedProductSuppliers$ = this.selectedProduct$.pipe(
+    filter((product) => Boolean(product)),
+    switchMap((product) =>
+      !!product?.supplierIds
+        ? forkJoin(product.supplierIds.map((id) => this._getSupplier(id)))
+        : of([])
+    ),
+    tap((xs) => console.log('product suppliers', JSON.stringify(xs)))
+  );
+
   private productInsertedSubject = new Subject<Product>();
   productInsertedAction$ = this.productInsertedSubject.asObservable();
 
@@ -78,6 +102,10 @@ export class ProductService {
 
   selectedProductChanged(selectedProductId: number) {
     this.productSelectedSubject.next(selectedProductId);
+  }
+
+  private _getSupplier(supplierId: number): Observable<Supplier> {
+    return this.http.get<Supplier>(`${this.suppliersUrl}/${supplierId}`);
   }
 
   private _rebuildProduct(p: Product, cs: ProductCategory[]): Product {
