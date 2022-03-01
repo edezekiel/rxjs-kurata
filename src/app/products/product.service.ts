@@ -12,6 +12,7 @@ import {
   Subject,
   tap,
   throwError,
+  shareReplay,
 } from 'rxjs';
 
 import { ProductCategoryService } from '../product-categories/product-category.service';
@@ -33,7 +34,10 @@ export class ProductService {
   productsWithCategory$ = combineLatest([
     this.products$,
     this.categoryService.productCategories$,
-  ]).pipe(map(([ps, cs]) => ps.map((p) => this._rebuildProduct(p, cs))));
+  ]).pipe(
+    map(([ps, cs]) => ps.map((p) => this._rebuildProduct(p, cs))),
+    shareReplay(1)
+  );
 
   private productSelectedSubject = new BehaviorSubject<number>(0);
   productSelectedAction$ = this.productSelectedSubject.asObservable();
@@ -43,7 +47,8 @@ export class ProductService {
     this.productSelectedAction$,
   ]).pipe(
     map(([ps, selectedId]) => ps.find((p) => p.id === selectedId)),
-    tap((p) => console.log('selectedProduct', p))
+    tap((p) => console.log('selectedProduct', p)),
+    shareReplay(1)
   );
 
   private productInsertedSubject = new Subject<Product>();
